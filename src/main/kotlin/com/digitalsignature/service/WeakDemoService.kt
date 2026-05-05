@@ -6,7 +6,6 @@ import org.springframework.stereotype.Service
 @Service
 class WeakDemoService {
 
-    // Custom weak hash: sums all bytes mod 256 → output is only 1 byte (256 possible values)
     private fun weakHash(input: ByteArray): Int =
         input.fold(0) { acc, b -> (acc + (b.toInt() and 0xFF)) % 256 }
 
@@ -16,13 +15,10 @@ class WeakDemoService {
         val originalBytes = inputText.toByteArray()
         val targetHash = weakHash(originalBytes)
 
-        // Craft a malicious document with the same hash.
-        // We start with a different string, then append one adjustment byte.
         val maliciousPrefix = "TAMPERED: $inputText"
         val prefixBytes = maliciousPrefix.toByteArray()
         val prefixHash = weakHash(prefixBytes)
 
-        // One extra byte that adjusts the running sum to match the target
         val adjustByte = ((targetHash - prefixHash) + 256) % 256
         val maliciousBytes = prefixBytes + byteArrayOf(adjustByte.toByte())
         val collidingHash = weakHash(maliciousBytes)

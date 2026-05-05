@@ -57,13 +57,11 @@ class SignatureService(private val objectMapper: ObjectMapper) {
             else -> throw IllegalArgumentException("Unsupported encryption algorithm: $algo")
         }
 
-        // Hash the file for metadata (informational)
         val digestName = hashAlgorithm.replace("-", "")
         val fileHashHex = MessageDigest.getInstance(digestName)
             .digest(fileBytes)
             .joinToString("") { "%02x".format(it) }
 
-        // Sign: the JCA Signature object internally hashes + signs
         val jceAlgo = buildJceAlgorithm(hashAlgorithm, algo)
         val sig = Signature.getInstance(jceAlgo)
         sig.initSign(privateKey)
@@ -81,7 +79,6 @@ class SignatureService(private val objectMapper: ObjectMapper) {
             originalFileHash = fileHashHex
         )
 
-        // Package: original file (unchanged) + metadata.json → ZIP
         val baos = ByteArrayOutputStream()
         ZipOutputStream(baos).use { zos ->
             zos.putNextEntry(ZipEntry("original/$fileName"))
