@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Digital Signature Service</title>
+  <style>
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --surface2: #252836;
+      --border: #2e3248;
+      --accent: #6c63ff;
+      --accent2: #4ecdc4;
+      --danger: #ff6b6b;
+      --success: #51cf66;
+      --warning: #fcc419;
+      --text: #e2e8f0;
+      --text2: #94a3b8;
+      --radius: 12px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; min-height: 100vh; }
+
+    header {
+      background: linear-gradient(135deg, var(--surface) 0%, #1e2035 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 20px 32px;
+      display: flex; align-items: center; gap: 16px;
+    }
+    header .logo { font-size: 28px; }
+    header h1 { font-size: 22px; font-weight: 700; color: var(--text); }
+    header p { font-size: 13px; color: var(--text2); margin-top: 2px; }
+
+    .tabs {
+      display: flex; gap: 4px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 32px;
+      overflow-x: auto;
+    }
+    .tab-btn {
+      background: none; border: none; color: var(--text2);
+      padding: 16px 20px; cursor: pointer; font-size: 14px; font-weight: 500;
+      border-bottom: 2px solid transparent; transition: all .2s;
+      white-space: nowrap;
+    }
+    .tab-btn:hover { color: var(--text); }
+    .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+    main { max-width: 900px; margin: 0 auto; padding: 32px 24px; }
+
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    .card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 24px; margin-bottom: 20px;
+    }
+    .card h2 { font-size: 17px; font-weight: 600; margin-bottom: 4px; }
+    .card .subtitle { font-size: 13px; color: var(--text2); margin-bottom: 20px; }
+
+    .form-group { margin-bottom: 16px; }
+    label { display: block; font-size: 13px; font-weight: 500; color: var(--text2); margin-bottom: 6px; }
+
+    select, input[type="text"], textarea {
+      width: 100%; background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 8px; color: var(--text); padding: 10px 14px; font-size: 14px;
+      outline: none; transition: border-color .2s;
+    }
+    select:focus, input:focus, textarea:focus { border-color: var(--accent); }
+    textarea { font-family: 'Courier New', monospace; font-size: 12px; resize: vertical; min-height: 100px; }
+
+    .file-upload {
+      border: 2px dashed var(--border); border-radius: 8px;
+      padding: 32px; text-align: center; cursor: pointer; transition: all .2s;
+      background: var(--surface2);
+    }
+    .file-upload:hover { border-color: var(--accent); background: rgba(108,99,255,0.05); }
+    .file-upload input { display: none; }
+    .file-upload .icon { font-size: 36px; margin-bottom: 8px; }
+    .file-upload .label { font-size: 14px; color: var(--text2); }
+    .file-upload .file-name { font-size: 13px; color: var(--accent2); margin-top: 8px; font-weight: 500; }
+
+    .btn {
+      background: var(--accent); color: white; border: none;
+      padding: 11px 24px; border-radius: 8px; font-size: 14px; font-weight: 600;
+      cursor: pointer; transition: all .2s; display: inline-flex; align-items: center; gap: 8px;
+    }
+    .btn:hover { background: #7c74ff; transform: translateY(-1px); box-shadow: 0 4px 16px rgba(108,99,255,.3); }
+    .btn:active { transform: translateY(0); }
+    .btn.secondary { background: var(--surface2); border: 1px solid var(--border); color: var(--text); }
+    .btn.secondary:hover { background: var(--border); box-shadow: none; }
+    .btn.danger { background: var(--danger); }
+    .btn.danger:hover { background: #ff8585; box-shadow: 0 4px 16px rgba(255,107,107,.3); }
+    .btn.success-btn { background: var(--success); color: #000; }
+    .btn:disabled { opacity: .5; cursor: not-allowed; transform: none; box-shadow: none; }
+
+    .btn-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-top: 8px; }
+
+    .copy-btn {
+      background: var(--surface2); border: 1px solid var(--border); color: var(--text2);
+      padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer; transition: all .2s;
+    }
+    .copy-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    .key-box { position: relative; }
+    .key-box .copy-btn { position: absolute; top: 8px; right: 8px; }
+    .key-box textarea { padding-right: 80px; }
+
+    .result-box {
+      border-radius: 10px; padding: 16px 20px; margin-top: 16px;
+      border: 1px solid; font-size: 14px; line-height: 1.6;
+    }
+    .result-box.success { background: rgba(81,207,102,.08); border-color: rgba(81,207,102,.3); color: #6fcf97; }
+    .result-box.error { background: rgba(255,107,107,.08); border-color: rgba(255,107,107,.3); color: #ff8585; }
+    .result-box.info { background: rgba(108,99,255,.08); border-color: rgba(108,99,255,.3); color: #a29bfe; }
+    .result-box.warning { background: rgba(252,196,25,.08); border-color: rgba(252,196,25,.3); color: #ffd43b; }
+
+    .result-icon { font-size: 24px; margin-bottom: 8px; }
+    .result-title { font-size: 16px; font-weight: 700; margin-bottom: 4px; }
+
+    .meta-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 12px; }
+    .meta-table tr { border-bottom: 1px solid var(--border); }
+    .meta-table tr:last-child { border-bottom: none; }
+    .meta-table td { padding: 8px 4px; }
+    .meta-table td:first-child { color: var(--text2); width: 160px; }
+    .meta-table td:last-child { font-family: monospace; word-break: break-all; }
+
+    .algo-badge {
+      display: inline-block; padding: 2px 10px; border-radius: 20px; font-size: 12px; font-weight: 600;
+    }
+    .badge-safe { background: rgba(81,207,102,.15); color: var(--success); }
+    .badge-weak { background: rgba(255,107,107,.15); color: var(--danger); }
+
+    .collision-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 16px 0; }
+    .collision-item { background: var(--surface2); border-radius: 8px; padding: 16px; border: 1px solid var(--border); }
+    .collision-item.tampered { border-color: rgba(255,107,107,.4); background: rgba(255,107,107,.05); }
+    .collision-item h4 { font-size: 12px; color: var(--text2); margin-bottom: 8px; text-transform: uppercase; letter-spacing: .5px; }
+    .collision-item .value { font-family: monospace; font-size: 13px; word-break: break-all; }
+    .collision-item .hash { font-family: monospace; font-size: 20px; font-weight: 700; margin-top: 8px; }
+    .collision-item.original .hash { color: var(--accent2); }
+    .collision-item.tampered .hash { color: var(--danger); }
+    .hash-match { text-align: center; padding: 8px; color: var(--warning); font-weight: 600; font-size: 14px; }
+
+    .explanation-box {
+      background: var(--surface2); border-radius: 8px; padding: 16px;
+      font-size: 13px; line-height: 1.7; white-space: pre-wrap;
+      border-left: 3px solid var(--danger);
+    }
+
+    .algo-comparison { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px,1fr)); gap: 12px; margin-top: 16px; }
+    .algo-card {
+      background: var(--surface2); border-radius: 8px; padding: 14px;
+      border: 1px solid var(--border); text-align: center;
+    }
+    .algo-card .name { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+    .algo-card .bits { font-size: 12px; color: var(--text2); margin-bottom: 8px; }
+
+    .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid rgba(255,255,255,.3); border-top-color: white; border-radius: 50%; animation: spin .7s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    @media (max-width: 600px) { .grid-2, .collision-grid { grid-template-columns: 1fr; } .tabs { padding: 0 16px; } main { padding: 20px 16px; } }
+
+    .divider { height: 1px; background: var(--border); margin: 20px 0; }
+
+    .info-row { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text2); margin-bottom: 8px; }
+    .info-row span.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); flex-shrink: 0; }
+
+    .download-zone {
+      display: flex; align-items: center; gap: 16px;
+      background: var(--surface2); border: 1px solid rgba(81,207,102,.3);
+      border-radius: 10px; padding: 16px 20px; margin-top: 16px;
+    }
+    .download-zone .icon { font-size: 32px; }
+    .download-zone .name { font-size: 14px; font-weight: 600; color: var(--success); }
+    .download-zone .desc { font-size: 12px; color: var(--text2); margin-top: 2px; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">🔐</div>
+  <div>
+    <h1>Digital Signature Service</h1>
+    <p>Asymmetric encryption with hashing — document immutability (Variant C)</p>
+  </div>
+</header>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="showTab('keys')">🔑 Generate Keys</button>
+  <button class="tab-btn" onclick="showTab('sign')">✍️ Sign Document</button>
+  <button class="tab-btn" onclick="showTab('verify')">✅ Verify Document</button>
+  <button class="tab-btn" onclick="showTab('weak')">⚠️ Weak Algorithm Demo</button>
+</div>
+
+<main>
+
+  <!-- TAB 1: Generate Keys -->
+  <div id="tab-keys" class="tab-content active">
+    <div class="card">
+      <h2>Generate Key Pair</h2>
+      <p class="subtitle">Generate a public/private key pair for signing and verification</p>
+
+      <div class="form-group">
+        <label>Encryption Algorithm</label>
+        <select id="keys-algo">
+          <option value="RSA">RSA-2048 (recommended, widely supported)</option>
+          <option value="ECDSA">ECDSA secp256r1 (shorter keys, same security)</option>
+        </select>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn" onclick="generateKeys()">
+          <span>Generate Keys</span>
+        </button>
+      </div>
+    </div>
+
+    <div id="keys-result" style="display:none">
+      <div class="card">
+        <h2>Private Key</h2>
+        <p class="subtitle">Keep this secret! Used for signing.</p>
+        <div class="key-box">
+          <button class="copy-btn" onclick="copyText('private-key-out', this)">Copy</button>
+          <textarea id="private-key-out" rows="6" readonly></textarea>
+        </div>
+      </div>
+      <div class="card">
+        <h2>Public Key</h2>
+        <p class="subtitle">Share with anyone who needs to verify your signatures.</p>
+        <div class="key-box">
+          <button class="copy-btn" onclick="copyText('public-key-out', this)">Copy</button>
+          <textarea id="public-key-out" rows="6" readonly></textarea>
+        </div>
+      </div>
+      <div class="result-box info">
+        <div class="result-icon">ℹ️</div>
+        <div><strong>How it works:</strong> The private key signs the document hash. The public key verifies the signature. Only the private key owner can sign — anyone can verify.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 2: Sign Document -->
+  <div id="tab-sign" class="tab-content">
+    <div class="card">
+      <h2>Sign a Document</h2>
+      <p class="subtitle">The original file is kept unchanged. Signature is stored in metadata inside a ZIP container.</p>
+
+      <div class="form-group">
+        <label>Document to Sign</label>
+        <div class="file-upload" onclick="document.getElementById('sign-file').click()">
+          <input type="file" id="sign-file" onchange="onFileSelect(this, 'sign-file-name')"/>
+          <div class="icon">📄</div>
+          <div class="label">Click to choose any file (PDF, TXT, DOCX, image...)</div>
+          <div class="file-name" id="sign-file-name"></div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="form-group">
+          <label>Encryption Algorithm</label>
+          <select id="sign-enc-algo" onchange="onEncAlgoChange()">
+            <option value="RSA">RSA</option>
+            <option value="ECDSA">ECDSA</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Hash Algorithm</label>
+          <select id="sign-hash-algo">
+            <option value="SHA-256">SHA-256 (recommended)</option>
+            <option value="SHA-512">SHA-512 (stronger)</option>
+            <option value="SHA-1">SHA-1 (weak, demo only)</option>
+            <option value="MD5">MD5 (weak, RSA only)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Private Key (Base64)</label>
+        <textarea id="sign-private-key" rows="4" placeholder="Paste your private key here..."></textarea>
+      </div>
+
+      <div class="form-group">
+        <label>Public Key (Base64) — embedded in document metadata</label>
+        <textarea id="sign-public-key" rows="4" placeholder="Paste your public key here..."></textarea>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn" onclick="signDocument()" id="sign-btn">✍️ Sign & Download</button>
+      </div>
+    </div>
+
+    <div id="sign-result"></div>
+  </div>
+
+  <!-- TAB 3: Verify Document -->
+  <div id="tab-verify" class="tab-content">
+    <div class="card">
+      <h2>Verify a Signed Document</h2>
+      <p class="subtitle">Upload the .signed.zip file. The public key is embedded in metadata — or paste your own to override.</p>
+
+      <div class="form-group">
+        <label>Signed Document (.signed.zip)</label>
+        <div class="file-upload" onclick="document.getElementById('verify-file').click()">
+          <input type="file" id="verify-file" accept=".zip" onchange="onFileSelect(this, 'verify-file-name')"/>
+          <div class="icon">📦</div>
+          <div class="label">Click to choose a .signed.zip file</div>
+          <div class="file-name" id="verify-file-name"></div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Public Key (optional — uses embedded key if empty)</label>
+        <textarea id="verify-public-key" rows="4" placeholder="Leave empty to use the public key embedded in the document..."></textarea>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn" onclick="verifyDocument()" id="verify-btn">✅ Verify Signature</button>
+      </div>
+    </div>
+
+    <div id="verify-result"></div>
+  </div>
+
+  <!-- TAB 4: Weak Algorithm Demo -->
+  <div id="tab-weak" class="tab-content">
+    <div class="card">
+      <h2>Weak Hash Algorithm — Collision Attack Demo</h2>
+      <p class="subtitle">Demonstrates why weak hash functions are dangerous in digital signatures</p>
+
+      <div class="result-box warning" style="margin-bottom: 20px;">
+        <strong>Our custom weak hash:</strong> sums all bytes mod 256. Output = <strong>1 byte</strong> (only 256 possible values).
+        An attacker can find a collision <strong>instantly</strong> — the same hash for a completely different document.
+      </div>
+
+      <div class="form-group">
+        <label>Original document text</label>
+        <input type="text" id="weak-input" value="Contract: pay $1000 to Alice" placeholder="Enter any text..."/>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn danger" onclick="runWeakAttack()" id="weak-btn">⚡ Run Collision Attack</button>
+        <button class="btn secondary" onclick="loadWeakInfo()">📊 Compare Algorithms</button>
+      </div>
+    </div>
+
+    <div id="weak-result"></div>
+    <div id="weak-info"></div>
+  </div>
+
+</main>
+
+<script>
+const API = '/api';
+
+function showTab(name) {
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  event.target.classList.add('active');
+}
+
+function onFileSelect(input, labelId) {
+  const label = document.getElementById(labelId);
+  label.textContent = input.files[0] ? '📎 ' + input.files[0].name : '';
+}
+
+function onEncAlgoChange() {
+  const enc = document.getElementById('sign-enc-algo').value;
+  const hashSel = document.getElementById('sign-hash-algo');
+  const md5 = hashSel.querySelector('option[value="MD5"]');
+  if (enc === 'ECDSA') {
+    if (hashSel.value === 'MD5') hashSel.value = 'SHA-256';
+    md5.disabled = true;
+    md5.textContent = 'MD5 (not supported with ECDSA)';
+  } else {
+    md5.disabled = false;
+    md5.textContent = 'MD5 (weak, RSA only)';
+  }
+}
+
+function copyText(id, btn) {
+  const el = document.getElementById(id);
+  navigator.clipboard.writeText(el.value).then(() => {
+    const orig = btn.textContent;
+    btn.textContent = 'Copied!';
+    setTimeout(() => btn.textContent = orig, 1500);
+  });
+}
+
+function setLoading(btnId, loading) {
+  const btn = document.getElementById(btnId);
+  if (loading) {
+    btn._orig = btn.innerHTML;
+    btn.innerHTML = '<span class="spinner"></span> Processing...';
+    btn.disabled = true;
+  } else {
+    btn.innerHTML = btn._orig;
+    btn.disabled = false;
+  }
+}
+
+// ── Generate Keys ──────────────────────────────────────────────
+async function generateKeys() {
+  const algo = document.getElementById('keys-algo').value;
+  setLoading('tab-keys .btn', false); // not using id here, just call API
+
+  const btn = document.querySelector('#tab-keys .btn');
+  btn._orig = btn.innerHTML;
+  btn.innerHTML = '<span class="spinner"></span> Generating...';
+  btn.disabled = true;
+
+  try {
+    const res = await fetch(API + '/generate-keys', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ algorithm: algo })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+
+    document.getElementById('private-key-out').value = data.privateKey;
+    document.getElementById('public-key-out').value = data.publicKey;
+    document.getElementById('keys-result').style.display = 'block';
+  } catch (e) {
+    alert('Error: ' + e.message);
+  } finally {
+    btn.innerHTML = btn._orig;
+    btn.disabled = false;
+  }
+}
+
+// ── Sign Document ──────────────────────────────────────────────
+async function signDocument() {
+  const file = document.getElementById('sign-file').files[0];
+  const privateKey = document.getElementById('sign-private-key').value.trim();
+  const publicKey = document.getElementById('sign-public-key').value.trim();
+  const encAlgo = document.getElementById('sign-enc-algo').value;
+  const hashAlgo = document.getElementById('sign-hash-algo').value;
+  const resultDiv = document.getElementById('sign-result');
+
+  if (!file) return showResult(resultDiv, 'error', '❌', 'No file selected', 'Please choose a file to sign.');
+  if (!privateKey) return showResult(resultDiv, 'error', '❌', 'Missing private key', 'Please paste your private key.');
+  if (!publicKey) return showResult(resultDiv, 'error', '❌', 'Missing public key', 'Please paste your public key.');
+
+  setLoading('sign-btn', true);
+
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('privateKey', privateKey);
+  formData.append('publicKey', publicKey);
+  formData.append('encryptionAlgorithm', encAlgo);
+  formData.append('hashAlgorithm', hashAlgo);
+
+  try {
+    const res = await fetch(API + '/sign', { method: 'POST', body: formData });
+
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error);
+    }
+
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const signedName = file.name + '.signed.zip';
+
+    resultDiv.innerHTML = `
+      <div class="download-zone">
+        <div class="icon">📦</div>
+        <div>
+          <div class="name">✅ Document signed successfully!</div>
+          <div class="desc">${signedName} — original file + metadata.json (signature)</div>
+        </div>
+        <a href="${url}" download="${signedName}" class="btn success-btn" style="margin-left:auto; text-decoration:none">⬇️ Download</a>
+      </div>
+      <div class="result-box info" style="margin-top:12px">
+        <strong>What's inside the ZIP:</strong><br>
+        📄 <code>original/${file.name}</code> — your file, completely unchanged<br>
+        📋 <code>metadata.json</code> — signature, algorithm, timestamp, public key
+      </div>`;
+  } catch (e) {
+    showResult(resultDiv, 'error', '❌', 'Signing failed', e.message);
+  } finally {
+    setLoading('sign-btn', false);
+  }
+}
+
+// ── Verify Document ────────────────────────────────────────────
+async function verifyDocument() {
+  const file = document.getElementById('verify-file').files[0];
+  const publicKey = document.getElementById('verify-public-key').value.trim();
+  const resultDiv = document.getElementById('verify-result');
+
+  if (!file) return showResult(resultDiv, 'error', '❌', 'No file selected', 'Please choose a .signed.zip file.');
+
+  setLoading('verify-btn', true);
+
+  const formData = new FormData();
+  formData.append('file', file);
+  if (publicKey) formData.append('publicKey', publicKey);
+
+  try {
+    const res = await fetch(API + '/verify', { method: 'POST', body: formData });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+
+    const isValid = data.valid;
+    resultDiv.innerHTML = `
+      <div class="result-box ${isValid ? 'success' : 'error'}">
+        <div class="result-icon">${isValid ? '✅' : '❌'}</div>
+        <div class="result-title">${isValid ? 'Signature Valid' : 'Signature INVALID'}</div>
+        <div>${data.details}</div>
+      </div>
+      <div class="card" style="margin-top:16px">
+        <h2>Signature Details</h2>
+        <table class="meta-table">
+          <tr><td>File</td><td>${data.fileName || '—'}</td></tr>
+          <tr><td>Algorithm</td><td>${data.algorithm || '—'}</td></tr>
+          <tr><td>Hash</td><td>${data.hashAlgorithm || '—'}</td></tr>
+          <tr><td>Signed at</td><td>${data.timestamp ? new Date(data.timestamp).toLocaleString() : '—'}</td></tr>
+          <tr><td>Status</td><td><span class="algo-badge ${isValid ? 'badge-safe' : 'badge-weak'}">${isValid ? '✓ VALID' : '✗ INVALID'}</span></td></tr>
+        </table>
+      </div>`;
+  } catch (e) {
+    showResult(resultDiv, 'error', '❌', 'Verification error', e.message);
+  } finally {
+    setLoading('verify-btn', false);
+  }
+}
+
+// ── Weak Demo ──────────────────────────────────────────────────
+async function runWeakAttack() {
+  const input = document.getElementById('weak-input').value.trim();
+  const resultDiv = document.getElementById('weak-result');
+  if (!input) return;
+
+  setLoading('weak-btn', true);
+
+  try {
+    const res = await fetch(API + '/weak/attack', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ input })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+
+    resultDiv.innerHTML = `
+      <div class="card">
+        <h2>⚡ Attack Result: ${data.attackType}</h2>
+        <p class="subtitle">${data.success ? 'Collision found instantly!' : 'Attack failed'}</p>
+
+        <div class="collision-grid">
+          <div class="collision-item original">
+            <h4>Original Document</h4>
+            <div class="value">"${escHtml(data.originalInput)}"</div>
+            <div class="hash">${data.originalHash}</div>
+            <div style="font-size:11px;color:var(--text2);margin-top:4px">Weak Hash value</div>
+          </div>
+          <div class="collision-item tampered">
+            <h4>🔴 Tampered Document (crafted by attacker)</h4>
+            <div class="value">"${escHtml(data.collidingInput)}"</div>
+            <div class="hash">${data.collidingHash}</div>
+            <div style="font-size:11px;color:var(--text2);margin-top:4px">Weak Hash value</div>
+          </div>
+        </div>
+
+        <div class="hash-match">⚠️ SAME HASH → Signature would be VALID for BOTH documents!</div>
+
+        <div class="divider"></div>
+        <h2 style="margin-bottom:12px">Explanation</h2>
+        <div class="explanation-box">${escHtml(data.explanation)}</div>
+      </div>`;
+  } catch(e) {
+    showResult(resultDiv, 'error', '❌', 'Error', e.message);
+  } finally {
+    setLoading('weak-btn', false);
+  }
+}
+
+async function loadWeakInfo() {
+  const div = document.getElementById('weak-info');
+  const res = await fetch(API + '/weak/info');
+  const data = await res.json();
+
+  const comp = data.comparison;
+  const cards = Object.entries(comp).map(([name, info]) => `
+    <div class="algo-card">
+      <div class="name">${name}</div>
+      <div class="bits">${info.bits} bits output</div>
+      <span class="algo-badge ${info.safe ? 'badge-safe' : 'badge-weak'}">${info.safe ? '✓ Safe' : '✗ Broken'}</span>
+      ${info.reason ? `<div style="font-size:11px;color:var(--text2);margin-top:6px">${info.reason}</div>` : ''}
+    </div>`).join('');
+
+  div.innerHTML = `
+    <div class="card">
+      <h2>Hash Algorithm Comparison</h2>
+      <p class="subtitle">More output bits = harder to find collisions</p>
+      <div class="algo-comparison">${cards}</div>
+    </div>`;
+}
+
+// ── Helpers ────────────────────────────────────────────────────
+function showResult(div, type, icon, title, message) {
+  div.innerHTML = `<div class="result-box ${type}"><div class="result-icon">${icon}</div><div class="result-title">${title}</div><div>${escHtml(message)}</div></div>`;
+}
+
+function escHtml(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+</script>
+</body>
+</html>
