@@ -212,7 +212,7 @@
       </div>
 
       <div class="btn-row">
-        <button class="btn" onclick="generateKeys()">
+        <button class="btn" id="keys-gen-btn" onclick="generateKeys()">
           <span>Generate Keys</span>
         </button>
       </div>
@@ -353,7 +353,7 @@
 </main>
 
 <script>
-const API = '/api';
+const API = 'http://localhost:8080/api';
 
 function showTab(name) {
   document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
@@ -405,13 +405,7 @@ function setLoading(btnId, loading) {
 // ── Generate Keys ──────────────────────────────────────────────
 async function generateKeys() {
   const algo = document.getElementById('keys-algo').value;
-  setLoading('tab-keys .btn', false); // not using id here, just call API
-
-  const btn = document.querySelector('#tab-keys .btn');
-  btn._orig = btn.innerHTML;
-  btn.innerHTML = '<span class="spinner"></span> Generating...';
-  btn.disabled = true;
-
+  setLoading('keys-gen-btn', true);
   try {
     const res = await fetch(API + '/generate-keys', {
       method: 'POST',
@@ -427,8 +421,7 @@ async function generateKeys() {
   } catch (e) {
     alert('Error: ' + e.message);
   } finally {
-    btn.innerHTML = btn._orig;
-    btn.disabled = false;
+    setLoading('keys-gen-btn', false);
   }
 }
 

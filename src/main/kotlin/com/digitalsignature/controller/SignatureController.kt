@@ -10,6 +10,7 @@ import org.springframework.web.multipart.MultipartFile
 
 @RestController
 @RequestMapping("/api")
+@CrossOrigin(origins = ["*"])
 class SignatureController(
     private val signatureService: SignatureService,
     private val weakDemoService: WeakDemoService
